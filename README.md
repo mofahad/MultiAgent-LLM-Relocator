@@ -1,15 +1,51 @@
-🏡 Relo AI "Relo AI — Your Smart Relocation Assistant for Safer, Smarter Moves."
+# Relocation source retrieval prototype
 
-💡 Inspiration Moving to a new city is exciting — but also stressful. Between comparing rent, checking crime stats, worrying about air quality, and figuring out if the neighborhood is actually livable, it’s easy to get overwhelmed. We wanted to simplify this entire process using AI, giving users a single assistant that could intelligently answer relocation questions — combining data, context, and natural conversation.
+A local React and Flask prototype with a CPU-friendly retrieval backend. The default path uses TF-IDF lexical retrieval and displays source records. It does not silently simulate an LLM or pretend that retrieval scores establish correctness.
 
-🚀 What it does Relo AI is a conversational assistant that helps users make informed relocation decisions by: Answering questions about housing availability, rent prices, and utility costs Providing crime insights and safety summaries using real data Integrating real-time weather and air quality info Summarizing results in a friendly, chat-style format Understanding user queries and splitting them between multiple specialized agents
+## Free local setup
 
-🏗️ How we built it Frontend: Built with React.js and styled using CSS, featuring a dynamic chatbot UI and auto-scroll, with simulated typing for a smooth user experience. Backend: Powered by Flask and exposed via Ngrok for live testing. Uses a MasterAgent that parses user input using a local LLM (Mistral or Phi-4). Routes queries to a SafetyClimateAgent (for crime/weather/air) or HousingAgent (for housing data). Retrieval: Housing and crime records are embedded with SentenceTransformers and indexed using FAISS for similarity-based search. LLM Reasoning: All responses are generated and summarized by a quantized Zephyr-7B model running locally with bitsandbytes (4-bit). Data: Housing CSV, government hate crime data, and real-time OpenWeatherMap + pollution APIs.
+Use Python 3.11 or 3.12. No paid API is required.
 
-⚠️ Challenges we ran into Query understanding: Breaking down vague or compound questions accurately required careful prompt engineering. City/county mismatches: Mapping city-level input to county-level crime records took extra logic and fallbacks. Model memory issues: Running a 7B model locally was only possible thanks to 4-bit quantization. Latency vs accuracy: Balancing fast retrieval with meaningful context involved tuning embedding models and FAISS index parameters.
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-local.txt
+$env:APP_DOMAIN="relocation"
+$env:HOUSING_CSV="C:\path\to\data.csv"
+$env:PORT="5004"
+python backend.py
+```
 
-🏆 Accomplishments that we're proud of Built a fully functional multi-agent system that runs entirely locally. Combined structured data retrieval with LLM reasoning seamlessly. Designed a smooth chat experience with rich UI interactions and type animation. Delivered context-aware, personalized responses that adapt to user history.
+On macOS/Linux set the same environment variables with `export`. `.env.example` is documentation; the backend does not automatically load it.
 
-📚 What we learned How to coordinate multiple agents in an LLM pipeline. The power of semantic embeddings + retrieval-augmented generation (RAG). Prompt design makes or breaks multi-step reasoning tasks. Local LLMs like Mistral and Zephyr-7B are incredibly capable when used creatively with optimized prompts.
+The housing CSV needs `City` and `State` columns. An optional `CRIME_CSV` adds a second corpus. It is not required for housing-only startup. Datasets are supplied separately and are not committed. Document provenance, permissions, and freshness before sharing data or reporting real-world findings.
 
-🔮 What's next for Relo AI Add filters for pet policies, schools, commute time, and public transport Voice input + response for accessibility Integrate real-time crime alerts and emergency mapping Build a user profile system to tailor suggestions Turn Relo AI into a mobile-first relocation app for wider access
+Source provenance defaults to `unverified_supplied_csv` and is shown with each record. Set `MEDICAL_DATA_PROVENANCE`, `HOUSING_DATA_PROVENANCE`, or `CRIME_DATA_PROVENANCE` only when the source has been established; use `synthetic` for generated examples. These labels are declared metadata, not independently verified certifications. Crime retrieval uses only State, County, Motivation Type, and Incident Count; supplemental scores and response times are excluded pending provenance review.
+
+Start the frontend in another terminal:
+
+```bash
+cd React
+npm ci
+npm start
+```
+
+The frontend defaults to `http://127.0.0.1:5004`. Set `REACT_APP_API_URL` to change it. Local CORS allows only localhost frontend origins. The backend binds to localhost, stores no conversation history, and reports loaded corpus sizes at `/health`.
+
+## Optional local generation
+
+With Ollama running locally and a model already downloaded, set `OLLAMA_MODEL` to that model name. The backend sends retrieved excerpts to `http://127.0.0.1:11434/api/generate`. Generated responses are marked `local_llm_unverified`. If generation fails, it returns source records with an explicit fallback message. Generated summaries have not been validated in this repair pass.
+
+## Tests and validation
+
+```bash
+python -m unittest test_backend -v
+```
+
+Eight backend tests cover ranking, provenance, abstention, request validation, missing data, stateless clearing, local CORS, labeled generation/fallback responses, and isolation of multiple corpora. Supplied CSV loading and retrieval smoke checks are tracked in `REPAIR_STATUS.md`. These checks are not retrieval-quality benchmarks. Three frontend behavior tests and the production build pass locally. Actual local LLM execution remains pending.
+
+## Original notebook
+
+The original notebook preserves the transformer/FAISS experiment. It has separate hardware and data requirements and is not the lightweight startup path. `REPAIR_STATUS.md` documents its repaired bugs and remaining limitations. `HISTORICAL_NOTES.md` preserves earlier descriptions without treating unsupported measurements as verified results.
+
+This remains a forked hackathon project; preserve upstream credit. The checked-in notebook has two retrieval branches, and this repair does not establish a five-agent implementation.
