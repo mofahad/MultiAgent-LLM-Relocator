@@ -2,7 +2,7 @@
 
 The checked-in backend is a notebook with LLM-based routing and two retrieval paths: housing and crime records. It is a forked hackathon prototype, not evidence of five independently implemented agents or measured workflow improvements.
 
-The supported lightweight backend loads the supplied 1,000-row housing CSV and returns retrieved records on CPU. Real-data loading and chat smoke checks pass. Seven backend tests, three frontend behavior tests, and the frontend production build pass. These are functionality checks, not retrieval-quality benchmarks. Optional local-model generation is tested with stubs; an actual model has not been executed.
+The supported lightweight backend loads the supplied 1,000-row housing CSV and 894-row processed crime CSV and returns retrieved records on CPU. CSV loading and chat smoke checks pass. Eight backend tests, three frontend behavior tests, and the frontend production build pass. These are functionality checks, not retrieval-quality benchmarks. Optional local-model generation is tested with stubs; an actual model has not been executed.
 
 ## Repairs prepared
 
@@ -15,7 +15,7 @@ The supported lightweight backend loads the supplied 1,000-row housing CSV and r
 
 ## Reproduction blockers
 
-The housing dataset is now available outside the repository. The supplied crime ZIP remains unreadable through the linked-phone filesystem and must be copied to a local folder. The original notebook requires the processed crime CSV, whose schema and provenance still need inspection. No fabricated replacement data is presented as the original dataset.
+The housing and processed crime datasets are now available outside the repository. The crime CSV was found beside the housing file, so the unreadable phone ZIP is no longer needed for the retrieval smoke test. Dataset provenance remains unconfirmed. Supplemental gun-violence/theft scores and police-response times are excluded from the lightweight retrieval path pending source review. Records are labeled `unverified_supplied_csv`; no measured city-safety claim is made.
 
 The original quantized Zephyr-7B path requires compatible hardware and downloaded weights. Original model routing, GPU execution, and response correctness remain unvalidated. The model's regex-based routing is fragile and needs a structured-output test suite. Claims about a city's safety require appropriate denominators and evidence; current prompt-generated examples are not validated statistics.
 
