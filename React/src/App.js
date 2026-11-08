@@ -30,13 +30,12 @@ function App() {
     // Clear the chat log and reset messages
     const aiStart = {
       id: 0,
-      text: "Hello! I'm Zoya. How can I assist you today?",
+      text: "Explore housing and available crime records. Results depend on the supplied data.",
       sender: 'chatgpt'
     };
     setMessages((prevMessages) => [...prevMessages, aiStart]);
   }
 
-  console.log(messages.length);
 
   // Simulate sending a message with a delay (e.g., waiting for response)
   async function handleSend() {
@@ -58,28 +57,28 @@ function App() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://1d24-34-16-156-139.ngrok-free.app/chat', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || "http://127.0.0.1:5004"}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ question: userInput })
       });
-    
+
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Request failed");
       const aiResponse = {
         id: messages.length + 2,
         text: data.reply,
         sender: 'chatgpt'
       };
       setMessages((prevMessages) => [...prevMessages, aiResponse]);
-      console.log("Backend response:", data);
-    
+
     } catch (error) {
-      console.error("Error fetching from backend:", error);
+      setMessages((previous) => [...previous, { id: Date.now(), text: `Request failed: ${error.message}`, sender: "chatgpt" }]);
     }
     setIsLoading(false);
-    
+
 
   }
 
@@ -87,7 +86,6 @@ function App() {
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      console.log('Enter pressed, sending message...');
       handleSend();
     }
   }
@@ -117,9 +115,9 @@ function App() {
             height="24"
             fill="none"
             stroke="#ff0000"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             viewBox="0 0 24 24"
           >
             <polyline points="3 6 5 6 21 6"></polyline>
@@ -191,13 +189,13 @@ function App() {
                 <div className="chat-input-wrapper">
                   <textarea
                     rows="1"
-                    className="chat-input-textarea"
-                    placeholder="Ask me anything :)"
+                    aria-label="Question" className="chat-input-textarea"
+                    placeholder="Ask about the source records"
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                   />
-                  <button className="chat-send-button" onClick={handleSend}>
+                  <button aria-label="Send question" className="chat-send-button" onClick={handleSend}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -211,9 +209,9 @@ function App() {
                     >
                       <defs>
                         <linearGradient id="gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="24" y2="0" gradientTransform="rotate(325)">
-                          <stop offset="0%" stop-color="#c25fff" />
-                          <stop offset="50%" stop-color="#fe7bf3" />
-                          <stop offset="100%" stop-color="#e78689" />
+                          <stop offset="0%" stopColor="#c25fff" />
+                          <stop offset="50%" stopColor="#fe7bf3" />
+                          <stop offset="100%" stopColor="#e78689" />
                         </linearGradient>
                       </defs>
                       <line x1="22" y1="2" x2="11" y2="13" />

@@ -1,15 +1,42 @@
-🏡 Relo AI "Relo AI — Your Smart Relocation Assistant for Safer, Smarter Moves."
+# Relocator · local source explorer
 
-💡 Inspiration Moving to a new city is exciting — but also stressful. Between comparing rent, checking crime stats, worrying about air quality, and figuring out if the neighborhood is actually livable, it’s easy to get overwhelmed. We wanted to simplify this entire process using AI, giving users a single assistant that could intelligently answer relocation questions — combining data, context, and natural conversation.
+Relocation questions can span housing and incident records with different sources. This hackathon prototype makes each retrieved row traceable by keeping the corpora separate and showing the record ID and provenance.
 
-🚀 What it does Relo AI is a conversational assistant that helps users make informed relocation decisions by: Answering questions about housing availability, rent prices, and utility costs Providing crime insights and safety summaries using real data Integrating real-time weather and air quality info Summarizing results in a friendly, chat-style format Understanding user queries and splitting them between multiple specialized agents
+## Try the demo
 
-🏗️ How we built it Frontend: Built with React.js and styled using CSS, featuring a dynamic chatbot UI and auto-scroll, with simulated typing for a smooth user experience. Backend: Powered by Flask and exposed via Ngrok for live testing. Uses a MasterAgent that parses user input using a local LLM (Mistral or Phi-4). Routes queries to a SafetyClimateAgent (for crime/weather/air) or HousingAgent (for housing data). Retrieval: Housing and crime records are embedded with SentenceTransformers and indexed using FAISS for similarity-based search. LLM Reasoning: All responses are generated and summarized by a quantized Zephyr-7B model running locally with bitsandbytes (4-bit). Data: Housing CSV, government hate crime data, and real-time OpenWeatherMap + pollution APIs.
+Use Python 3.11 or 3.12. From a fresh checkout, create and activate a virtual environment, then run:
 
-⚠️ Challenges we ran into Query understanding: Breaking down vague or compound questions accurately required careful prompt engineering. City/county mismatches: Mapping city-level input to county-level crime records took extra logic and fallbacks. Model memory issues: Running a 7B model locally was only possible thanks to 4-bit quantization. Latency vs accuracy: Balancing fast retrieval with meaningful context involved tuning embedding models and FAISS index parameters.
+```bash
+python -m pip install -r requirements-local.txt
+python backend.py --demo
+```
 
-🏆 Accomplishments that we're proud of Built a fully functional multi-agent system that runs entirely locally. Combined structured data retrieval with LLM reasoning seamlessly. Designed a smooth chat experience with rich UI interactions and type animation. Delivered context-aware, personalized responses that adapt to user history.
+Open http://127.0.0.1:5004/demo and select **Try housing** or **Try incident records**. The bundled records are fictional and illustrate the retrieval interface. The demo runs locally without credentials.
 
-📚 What we learned How to coordinate multiple agents in an LLM pipeline. The power of semantic embeddings + retrieval-augmented generation (RAG). Prompt design makes or breaks multi-step reasoning tasks. Local LLMs like Mistral and Zephyr-7B are incredibly capable when used creatively with optimized prompts.
+```mermaid
+flowchart LR
+  A[Search question] --> B[Validate input]
+  B --> C[Search housing index]
+  B --> D[Search incident index]
+  C --> E[Source excerpts and provenance]
+  D --> E
+  E --> F[Browser or API response]
+```
 
-🔮 What's next for Relo AI Add filters for pet policies, schools, commute time, and public transport Voice input + response for accessibility Integrate real-time crime alerts and emergency mapping Build a user profile system to tailor suggestions Turn Relo AI into a mobile-first relocation app for wider access
+## Evidence
+
+The browser returned labeled housing and incident excerpts from the bundled fixtures. Nine backend tests and three React tests passed, and the React production build succeeded. These checks establish functionality on fixtures. The archived notebook and original hackathon outcomes are described separately in [historical notes](HISTORICAL_NOTES.md).
+
+## Use your own authorized records
+
+Set `APP_DOMAIN=relocation`, `HOUSING_CSV` to a CSV with `City` and `State` columns, and `PORT=5004`, then run `python backend.py`. An optional `CRIME_CSV` can supply `State`, `County`, `Motivation Type`, and `Incident Count`. Use environment variables appropriate to your shell. See [.env.example](.env.example) for the names.
+
+CSV provenance is declared metadata and defaults to `unverified_supplied_csv`. Results show record excerpts, not city safety estimates or housing recommendations. The bundled demo runs independently of these settings. For a custom corpus, `OLLAMA_MODEL` can optionally point to a local model you already have. Its summaries carry an unverified label and fall back to retrieval when generation fails. Actual model inference was outside this verification.
+
+For the optional React interface, run `npm ci` and `npm start` from `React/` while the backend is running. Use `python -m unittest test_backend -v` for backend checks.
+
+**Tools** · Python, Flask, scikit-learn, TF-IDF, React. Fork and notebook attribution are preserved in the repository history and [repair notes](REPAIR_STATUS.md).
+
+## See it work
+
+![Recorded local demonstration](docs/portfolio-demo.gif)
