@@ -1,11 +1,12 @@
 """CPU-friendly retrieval service; optional generation uses a local Ollama model."""
+import argparse
 import csv
 from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
 import urllib.request
-from flask import Flask, jsonify, request
+from flask import Flask, abort, jsonify, request, send_from_directory
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
@@ -78,14 +79,20 @@ def local_generate(question, matches, model):
     return answer
 
 
-def create_app(corpora=None, mode=None):
+def create_app(corpora=None, mode=None, *, demo=False):
     app = Flask(__name__)
     app.config['MAX_CONTENT_LENGTH'] = 100000
-    mode = mode or os.environ.get('APP_DOMAIN', 'medical')
+    mode = 'relocation' if demo else mode or os.environ.get('APP_DOMAIN', 'medical')
     if mode not in ('medical', 'relocation'):
         raise ValueError('APP_DOMAIN must be medical or relocation.')
     configured = corpora if corpora is not None else {}
-    if corpora is None:
+    if demo:
+        example_path = Path(__file__).resolve().parent / 'examples'
+        configured = {
+            name: load_csv(example_path / f'{name}.synthetic.csv', name, 'synthetic')
+            for name in ('housing', 'crime')
+        }
+    elif corpora is None:
         for name, variable in [('medical', 'MEDICAL_CSV')] if mode == 'medical' else [('housing','HOUSING_CSV'),('crime','CRIME_CSV')]:
             if os.environ.get(variable):
                 configured[name] = load_csv(os.environ[variable], name, os.environ.get(name.upper() + '_DATA_PROVENANCE', 'unverified_supplied_csv'))
@@ -105,7 +112,13 @@ def create_app(corpora=None, mode=None):
         return jsonify(status='ready' if configured else 'data_missing', mode='tfidf_retrieval',
                        corpora={name: len(corpus.records) for name, corpus in configured.items()},
                        dataset_provenance={name: corpus.provenance for name, corpus in configured.items()},
-                       local_generation_configured=bool(os.environ.get('OLLAMA_MODEL'))), 200 if configured else 503
+                       local_generation_configured=not demo and bool(os.environ.get('OLLAMA_MODEL'))), 200 if configured else 503
+
+    @app.get('/demo')
+    def demo_page():
+        if not demo:
+            abort(404)
+        return send_from_directory(Path(__file__).resolve().parent / 'examples', 'index.html')
 
     @app.delete('/clear-chat')
     def clear():
@@ -129,7 +142,7 @@ def create_app(corpora=None, mode=None):
             f'[{row["id"]}; provenance={row["provenance"]}] {row["excerpt"][:1800]}' for row in matches)
         response_mode = 'tfidf_retrieval'
         error = None
-        model = os.environ.get('OLLAMA_MODEL')
+        model = None if demo else os.environ.get('OLLAMA_MODEL')
         if model:
             try:
                 reply = 'Local model summary (not independently verified):\n\n' + local_generate(question, matches, model)
@@ -143,4 +156,8 @@ def create_app(corpora=None, mode=None):
 
 
 if __name__ == '__main__':
-    create_app().run(host='127.0.0.1', port=int(os.environ.get('PORT', '5005')), debug=False)
+    parser = argparse.ArgumentParser(description='Local relocation source retrieval')
+    parser.add_argument('--demo', action='store_true', help='Use bundled fictional records')
+    args = parser.parse_args()
+    default_port = '5004' if args.demo else '5005'
+    create_app(demo=args.demo).run(host='127.0.0.1', port=int(os.environ.get('PORT', default_port)), debug=False)

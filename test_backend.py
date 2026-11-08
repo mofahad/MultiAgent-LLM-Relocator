@@ -3,6 +3,19 @@ from unittest.mock import patch
 from backend import Corpus, create_app
 
 class RetrievalTests(unittest.TestCase):
+    def test_demo_loads_bundled_sources_without_generation(self):
+        with patch.dict('os.environ', {'OLLAMA_MODEL': 'existing-config'}), patch('backend.local_generate') as generate:
+            client = create_app(demo=True).test_client()
+            self.assertFalse(client.get('/health').json['local_generation_configured'])
+            with client.get('/demo') as page:
+                self.assertEqual(page.status_code, 200)
+                self.assertIn(b'FICTIONAL DATA DEMO', page.data)
+            for question, expected in [('Cedar Bay studio', 'housing'), ('Amber County', 'crime')]:
+                result = client.post('/chat', json={'question': question}).json
+                self.assertEqual(result['sources'][0]['corpus'], expected)
+                self.assertEqual(result['sources'][0]['provenance'], 'synthetic')
+            generate.assert_not_called()
+
     def setUp(self):
         corpus = Corpus('housing', [
             {'id':'housing:1','text':'Bloomington Indiana apartment rent 900','excerpt':'Demo apartment in Bloomington'},

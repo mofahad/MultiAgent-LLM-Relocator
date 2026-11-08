@@ -1,51 +1,42 @@
-# Relocation source retrieval prototype
+# Relocator · local source explorer
 
-A local React and Flask prototype with a CPU-friendly retrieval backend. The default path uses TF-IDF lexical retrieval and displays source records. It does not silently simulate an LLM or pretend that retrieval scores establish correctness.
+Relocation questions can span housing and incident records with different sources. This hackathon prototype makes each retrieved row traceable by keeping the corpora separate and showing the record ID and provenance.
 
-## Free local setup
+## Try the demo
 
-Use Python 3.11 or 3.12. No paid API is required.
+Use Python 3.11 or 3.12. From a fresh checkout, create and activate a virtual environment, then run:
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+```bash
 python -m pip install -r requirements-local.txt
-$env:APP_DOMAIN="relocation"
-$env:HOUSING_CSV="C:\path\to\data.csv"
-$env:PORT="5004"
-python backend.py
+python backend.py --demo
 ```
 
-On macOS/Linux set the same environment variables with `export`. `.env.example` is documentation; the backend does not automatically load it.
+Open http://127.0.0.1:5004/demo and select **Try housing** or **Try incident records**. The bundled records are fictional and illustrate the retrieval interface. The demo runs locally without credentials.
 
-The housing CSV needs `City` and `State` columns. An optional `CRIME_CSV` adds a second corpus. It is not required for housing-only startup. Datasets are supplied separately and are not committed. Document provenance, permissions, and freshness before sharing data or reporting real-world findings.
-
-Source provenance defaults to `unverified_supplied_csv` and is shown with each record. Set `MEDICAL_DATA_PROVENANCE`, `HOUSING_DATA_PROVENANCE`, or `CRIME_DATA_PROVENANCE` only when the source has been established; use `synthetic` for generated examples. These labels are declared metadata, not independently verified certifications. Crime retrieval uses only State, County, Motivation Type, and Incident Count; supplemental scores and response times are excluded pending provenance review.
-
-Start the frontend in another terminal:
-
-```bash
-cd React
-npm ci
-npm start
+```mermaid
+flowchart LR
+  A[Search question] --> B[Validate input]
+  B --> C[Search housing index]
+  B --> D[Search incident index]
+  C --> E[Source excerpts and provenance]
+  D --> E
+  E --> F[Browser or API response]
 ```
 
-The frontend defaults to `http://127.0.0.1:5004`. Set `REACT_APP_API_URL` to change it. Local CORS allows only localhost frontend origins. The backend binds to localhost, stores no conversation history, and reports loaded corpus sizes at `/health`.
+## Evidence
 
-## Optional local generation
+The browser returned labeled housing and incident excerpts from the bundled fixtures. Nine backend tests and three React tests passed, and the React production build succeeded. These checks establish functionality on fixtures. The archived notebook and original hackathon outcomes are described separately in [historical notes](HISTORICAL_NOTES.md).
 
-With Ollama running locally and a model already downloaded, set `OLLAMA_MODEL` to that model name. The backend sends retrieved excerpts to `http://127.0.0.1:11434/api/generate`. Generated responses are marked `local_llm_unverified`. If generation fails, it returns source records with an explicit fallback message. Generated summaries have not been validated in this repair pass.
+## Use your own authorized records
 
-## Tests and validation
+Set `APP_DOMAIN=relocation`, `HOUSING_CSV` to a CSV with `City` and `State` columns, and `PORT=5004`, then run `python backend.py`. An optional `CRIME_CSV` can supply `State`, `County`, `Motivation Type`, and `Incident Count`. Use environment variables appropriate to your shell. See [.env.example](.env.example) for the names.
 
-```bash
-python -m unittest test_backend -v
-```
+CSV provenance is declared metadata and defaults to `unverified_supplied_csv`. Results show record excerpts, not city safety estimates or housing recommendations. The bundled demo runs independently of these settings. For a custom corpus, `OLLAMA_MODEL` can optionally point to a local model you already have. Its summaries carry an unverified label and fall back to retrieval when generation fails. Actual model inference was outside this verification.
 
-Eight backend tests cover ranking, provenance, abstention, request validation, missing data, stateless clearing, local CORS, labeled generation/fallback responses, and isolation of multiple corpora. Supplied CSV loading and retrieval smoke checks are tracked in `REPAIR_STATUS.md`. These checks are not retrieval-quality benchmarks. Three frontend behavior tests and the production build pass locally. Actual local LLM execution remains pending.
+For the optional React interface, run `npm ci` and `npm start` from `React/` while the backend is running. Use `python -m unittest test_backend -v` for backend checks.
 
-## Original notebook
+**Tools** · Python, Flask, scikit-learn, TF-IDF, React. Fork and notebook attribution are preserved in the repository history and [repair notes](REPAIR_STATUS.md).
 
-The original notebook preserves the transformer/FAISS experiment. It has separate hardware and data requirements and is not the lightweight startup path. `REPAIR_STATUS.md` documents its repaired bugs and remaining limitations. `HISTORICAL_NOTES.md` preserves earlier descriptions without treating unsupported measurements as verified results.
+## See it work
 
-This remains a forked hackathon project; preserve upstream credit. The checked-in notebook has two retrieval branches, and this repair does not establish a five-agent implementation.
+![Recorded local demonstration](docs/portfolio-demo.gif)
